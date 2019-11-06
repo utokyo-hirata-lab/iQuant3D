@@ -1,0 +1,36 @@
+TextWidget:
+<TextWidget>:
+  BoxLayout:
+    orientation: 'vertical'
+    size: root.size
+
+    Label:
+      size_hint_y: 0.1
+      id: label1
+      font_size: 68
+      text: root.text
+      color: root.color
+
+    Image:
+      source: 'brain-network-coherence.png'
+
+    BoxLayout:
+      size_hint_y: 0.3
+      padding: 20,30,20,10
+      Button:
+        id: button1
+        text: 'Peak-detection'
+        font_size: 68
+        on_press: root.buttonClicked1()
+
+      Button:
+        id: button2
+        text: '3D modeling'
+        font_size: 68
+        on_press: root.buttonClicked2()
+
+      Button:
+        id: button3
+        text: 'Summary'
+        font_size: 68
+        on_press: root.buttonClicked3()
