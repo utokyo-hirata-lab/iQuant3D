@@ -1,3 +1,5 @@
+#iQuant3D 0.1.11 (Nov.7, 2019)
+#Development Code = OTTER
 #-*- coding: utf8 -*-
 
 from kivy.app import App
