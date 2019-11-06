@@ -36,5 +36,9 @@ class TestApp(App):
     def build(self):
         return TextWidget()
 
+class iQuant3D():
+    def __init__(self):
+        pass
+
 if __name__=='__main__':
     TestApp().run()
