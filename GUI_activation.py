@@ -28,10 +28,10 @@ class TextWidget(Widget):
         self.text = 'Analysis'
         self.color = [0,0,1,1]
 
-class TestApp(App):
+class iQuant3DApp(App):
     def __init__(self, **kwargs):
-        super(TestApp, self).__init__(**kwargs)
-        self.title='greeting'
+        super(iQuant3DApp, self).__init__(**kwargs)
+        self.title='iQuant3D'
 
     def build(self):
         return TextWidget()
@@ -41,4 +41,4 @@ class iQuant3D():
         pass
 
 if __name__=='__main__':
-    TestApp().run()
+    iQuant3DApp().run()
