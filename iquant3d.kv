@@ -1,12 +1,12 @@
-TextWidget:
-<TextWidget>:
+#TextWidget:
+<ButtonWidget>:
   BoxLayout:
     orientation: 'vertical'
     size: root.size
 
     Label:
-      size_hint_y: 0.05
-      id: label1
+      size_hint_y: 0.02
+      id: title_label
       font_size: 68
       text: root.text
       color: root.color
@@ -18,7 +18,7 @@ TextWidget:
       orientation: 'horizontal'
       size: root.size
       size_hint_y: 0.3
-      padding: 20,30,20,10
+      #padding: 20,30,20,10
 
       BoxLayout:
         orientation: 'vertical'
@@ -36,7 +36,7 @@ TextWidget:
             id: loadData0
             text: 'Load-Data'
             font_size: 68
-            on_press: root.loadData()
+            on_press: root.notAvailable()
 
           BoxLayout:
             orientation: 'vertical'
@@ -48,47 +48,72 @@ TextWidget:
               id: loadData2
               text: 'Load-Data'
               font_size: 68
-              on_press: root.loadData()
+              on_press: root.notAvailable()
 
             Button:
               id: loadData3
               text: 'Load-Data'
               font_size: 68
-              on_press: root.loadData()
+              on_press: root.notAvailable()
 
             Button:
               id: loadData4
               text: 'Load-Data'
               font_size: 68
-              on_press: root.loadData()
+              on_press: root.notAvailable()
 
         Button:
           id: button1
           text: 'Peak-detection'
           font_size: 68
-          on_press: root.buttonClicked1()
+          on_press: root.notAvailable()
 
         Button:
           id: button4
           text: 'Peak-detection'
           font_size: 68
-          on_press: root.buttonClicked1()
+          on_press: root.notAvailable()
 
       BoxLayout:
         orientation: 'vertical'
         size: root.size
 
-        Image:
-          source: 'brain-network-coherence.png'
+        Label:
+          size_hint_y: 0.1
+          id: label2
+          font_size: 68
+          text: root.message
+          color: root.color
 
-        #Button:
-        #  id: button2
-        #  text: '3D modeling'
-        #  font_size: 68
-        #  on_press: root.buttonClicked2()
+        #Image:
+        #  source: 'brain-network-coherence.png'
+
+        BoxLayout:
+          orientation: 'horizontal'
+          size_hint_y: 0.1
+          #size: root.size
+
+          TextInput:
+            #size_hint_y: 0.1
+            text: 'File Path'
+
+          Button:
+            #size_hint_y: 0.1
+            size_hint_x: 0.1
+            id: submit
+            text: 'Submit'
+            font_size: 40
+            on_press: root.notAvailable()
 
         Button:
+          id: button2
+          text: '3D modeling'
+          font_size: 68
+          on_press: root.notAvailable()
+
+        Button:
+          size_hint_y: 0.2
           id: button3
           text: 'Summary'
           font_size: 68
-          on_press: root.buttonClicked3()
+          on_press: root.notAvailable()
