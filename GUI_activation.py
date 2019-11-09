@@ -1,4 +1,4 @@
-#iQuant3D 0.1.11 (Nov.7, 2019)
+#iQuant3D 0.1.13 (Nov.10, 2019)
 #Development Code = OTTER
 #-*- coding: utf8 -*-
 
@@ -12,6 +12,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 #from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 #from kivy.garden.animlabel import AnimLabel
 from kivy.config import Config
+import random
 Config.set('graphics', 'width', '1920')
 Config.set('graphics', 'height', '1080')
 
@@ -19,6 +20,10 @@ sm = ScreenManager()
 
 class MainScreenWidget(Widget):
     pass
+
+class Measure():
+    def temp_module(self):
+        return(round(random.random()*40,1))
 
 class ButtonWidget(Widget):
     text = StringProperty()
@@ -33,6 +38,18 @@ class ButtonWidget(Widget):
         self.message = 'iQuant3D'
         self.std_element = 'init'
         self.view_element = 'init'
+
+    def on_measure(self):
+        temp=Measure()
+        if self.ids.g0.active:
+            self.ids.l0.text=str(temp.temp_module()) + '\'C'
+        else:
+            self.ids.l0.text='xx\'C'
+
+        if self.ids.g1.active:
+            self.ids.l1.text=str(temp.temp_module()) + '\'C'
+        else:
+            self.ids.l1.text='xx\'C'
 
     def loadData(self):
         self.message = 'LoadData'

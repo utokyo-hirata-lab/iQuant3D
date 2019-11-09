@@ -44,6 +44,48 @@
             #size_hint_y: 0.3
             #padding: 20,30,20,10
 
+            CheckBox:
+              #group: "gp01"
+              id: g0
+              #size: 10,10
+              #pos: 10,130
+              active: 1
+              Label:
+                size: self.texture_size
+                #pos: 40,125
+                color: [1,1,1,1]
+                text: 'Sectioning'
+
+              Label:
+                id: l0
+                size: self.texture_size
+                #pos: 100,125
+                text: 'Sectioning'
+                color: root.color
+
+            CheckBox:
+              #group: "gp01"
+              id: g1
+              #size: 10,10
+              #active: 1
+              #pos: 10,100
+              Label:
+                size: self.texture_size
+                #pos: 40,95
+                text: 'Fix'
+              Label:
+                id: l1
+                size: self.texture_size
+                #pos: 100,95
+                text: 'Fix'
+
+            Button:
+              text: "Measure"
+              font_size: 68
+              #size:   100,30
+              #pos:    25,5
+              on_release: root.on_measure()
+
             Button:
               id: loadData2
               text: 'Load-Data'
