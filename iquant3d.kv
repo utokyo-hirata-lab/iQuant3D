@@ -80,7 +80,7 @@
                 text: 'Fix'
 
             Button:
-              text: "Measure"
+              text: 'Submit'
               font_size: 68
               #size:   100,30
               #pos:    25,5
@@ -88,19 +88,19 @@
 
             Button:
               id: loadData2
-              text: 'Load-Data'
+              text: '2D-sectioning'
               font_size: 68
               on_press: root.notAvailable()
 
             Button:
               id: loadData3
-              text: 'Load-Data'
+              text: '3D-sectioning'
               font_size: 68
               on_press: root.notAvailable()
 
             Button:
               id: loadData4
-              text: 'Load-Data'
+              text: 'Animation'
               font_size: 68
               on_press: root.notAvailable()
 
@@ -112,7 +112,7 @@
 
         Button:
           id: button4
-          text: 'Peak-detection'
+          text: 'Modeling'
           font_size: 68
           on_press: root.notAvailable()
 
@@ -147,11 +147,13 @@
             font_size: 40
             on_press: root.notAvailable()
 
-        Button:
-          id: button2
-          text: '3D modeling'
-          font_size: 68
-          on_press: root.notAvailable()
+        Image:
+          source: 'image/test.png'
+        #Button:
+        #  id: button2
+        #  text: '3D modeling'
+        #  font_size: 68
+        #  on_press: root.notAvailable()
 
         Button:
           size_hint_y: 0.2
