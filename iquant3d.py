@@ -107,3 +107,10 @@ class iq3:
         #vis_params()
         plt.plot(self.data['Time'],self.data[element],color='black')
         plt.show()
+
+    def em(self,num):
+        x = 0
+        for i in range(num):
+            for j in range(num):
+                x = x + i + j
+        return x

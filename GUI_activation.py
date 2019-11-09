@@ -18,6 +18,10 @@ class TextWidget(Widget):
         super(TextWidget, self).__init__(**kwargs)
         self.text = 'iQuant3D'
 
+    def loadData(self):
+        self.text = 'LoadData'
+        self.color = [1,1,1,1]
+
     def buttonClicked1(self):
         self.text = 'Peak-Detection'
         self.color = [1,0,0,1]

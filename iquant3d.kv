@@ -5,32 +5,90 @@ TextWidget:
     size: root.size
 
     Label:
-      size_hint_y: 0.1
+      size_hint_y: 0.05
       id: label1
       font_size: 68
       text: root.text
       color: root.color
 
-    Image:
-      source: 'brain-network-coherence.png'
+    #Image:
+    #  source: 'brain-network-coherence.png'
 
     BoxLayout:
+      orientation: 'horizontal'
+      size: root.size
       size_hint_y: 0.3
       padding: 20,30,20,10
-      Button:
-        id: button1
-        text: 'Peak-detection'
-        font_size: 68
-        on_press: root.buttonClicked1()
 
-      Button:
-        id: button2
-        text: '3D modeling'
-        font_size: 68
-        on_press: root.buttonClicked2()
+      BoxLayout:
+        orientation: 'vertical'
+        size: root.size
+        size_hint_x: 0.4
+        #padding: 20,30,20,10
 
-      Button:
-        id: button3
-        text: 'Summary'
-        font_size: 68
-        on_press: root.buttonClicked3()
+        BoxLayout:
+          orientation: 'horizontal'
+          size: root.size
+          #size_hint_y: 0.3
+          #padding: 20,30,20,10
+
+          Button:
+            id: loadData0
+            text: 'Load-Data'
+            font_size: 68
+            on_press: root.loadData()
+
+          BoxLayout:
+            orientation: 'vertical'
+            size: root.size
+            #size_hint_y: 0.3
+            #padding: 20,30,20,10
+
+            Button:
+              id: loadData2
+              text: 'Load-Data'
+              font_size: 68
+              on_press: root.loadData()
+
+            Button:
+              id: loadData3
+              text: 'Load-Data'
+              font_size: 68
+              on_press: root.loadData()
+
+            Button:
+              id: loadData4
+              text: 'Load-Data'
+              font_size: 68
+              on_press: root.loadData()
+
+        Button:
+          id: button1
+          text: 'Peak-detection'
+          font_size: 68
+          on_press: root.buttonClicked1()
+
+        Button:
+          id: button4
+          text: 'Peak-detection'
+          font_size: 68
+          on_press: root.buttonClicked1()
+
+      BoxLayout:
+        orientation: 'vertical'
+        size: root.size
+
+        Image:
+          source: 'brain-network-coherence.png'
+
+        #Button:
+        #  id: button2
+        #  text: '3D modeling'
+        #  font_size: 68
+        #  on_press: root.buttonClicked2()
+
+        Button:
+          id: button3
+          text: 'Summary'
+          font_size: 68
+          on_press: root.buttonClicked3()
