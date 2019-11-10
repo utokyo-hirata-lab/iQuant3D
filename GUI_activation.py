@@ -9,6 +9,7 @@ from kivy.uix.widget import Widget
 from kivy.properties import StringProperty, ListProperty
 from kivy.base import runTouchApp
 from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.spinner import Spinner
 #from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 #from kivy.garden.animlabel import AnimLabel
 from kivy.config import Config
@@ -19,6 +20,9 @@ Config.set('graphics', 'height', '1080')
 sm = ScreenManager()
 
 class MainScreenWidget(Widget):
+    pass
+
+class CustomSpinner(Spinner):
     pass
 
 class Measure():
@@ -50,6 +54,9 @@ class ButtonWidget(Widget):
             self.ids.l1.text=str(temp.temp_module()) + '\'C'
         else:
             self.ids.l1.text='xx\'C'
+
+    def on_spinner_change(self, text):
+        print('The spinner', self, 'have text', text)
 
     def loadData(self):
         self.message = 'LoadData'
