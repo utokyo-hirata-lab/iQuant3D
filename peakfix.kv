@@ -1,0 +1,73 @@
+#TextWidget:
+<ButtonWidget>:
+  BoxLayout:
+    orientation: 'vertical'
+    size: root.size
+
+    Label:
+      size_hint_y: 0.05
+      id: title_label
+      font_size: 68
+      text: root.text
+      color: root.color
+
+    #Image:
+    #  source: 'brain-network-coherence.png'
+    BoxLayout:
+      orientation: 'horizontal'
+      size_hint_y: 0.1
+      #size: root.size
+
+      TextInput:
+        #size_hint_y: 0.1
+        text: 'File Path'
+
+      CustomSpinner:
+        size_hint_x: 0.1
+        text: 'STD'
+        values: '206Pb','57Fe','43Ca'
+        #size_hint: None, None
+        #size: 100, 44
+        #pos_hint: {'center_x': .5, 'center_y': .5}
+        on_text: root.on_spinner_change(self.text)
+
+      Button:
+        #size_hint_y: 0.1
+        size_hint_x: 0.1
+        id: dataload
+        text: 'Load'
+        font_size: 40
+        on_press: root.notAvailable()
+
+    Image:
+      source: 'image/test.png'
+      #Button:
+      #  id: button2
+      #  text: '3D modeling'
+      #  font_size: 68
+      #  on_press: root.notAvailable()
+
+    BoxLayout:
+      orientation: 'horizontal'
+      size_hint_y: 0.1
+      #size: root.size
+
+      TextInput:
+        #size_hint_y: 0.1
+        text: 'File Path'
+
+      TextInput:
+        #size_hint_y: 0.1
+        text: 'Washout'
+
+      TextInput:
+        #size_hint_y: 0.1
+        text: 'Pseudo Cut-off Value'
+
+      Button:
+        #size_hint_y: 0.1
+        #size_hint_x: 0.1
+        id: submit
+        text: 'submit'
+        font_size: 40
+        on_press: root.notAvailable()

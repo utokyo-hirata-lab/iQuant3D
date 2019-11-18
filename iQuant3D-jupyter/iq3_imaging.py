@@ -7,26 +7,14 @@ import sys
 import seaborn as sns
 from matplotlib.colors import LogNorm
 import os.path
-from ipywidgets import widgets, interactive
-
-start_year = widgets.BoundedFloatText(
-    value=30,
-    min=10,
-    max=100,
-    step=1,
-    description='Start Year:',
-    disabled=False,
-    color='black'
-)
-
-interactive(start_year=start_year)
 
 #-----------------------------
 filepath = '20191110_3dimaging_001_1.csv'
 standard_element = '55Mn'
 washout = 20
+pseudo_cutoff_value = 2000
 #----------------------------
-"""
+
 if len(sys.argv) == 2:filepath = sys.argv[1]
 elif len(sys.argv) == 3:standard_element = sys.argv[2]
 
@@ -56,7 +44,7 @@ def iq3_imaging(filepath,standard_element,imaging_element):
     elements = pd.read_csv(filepath,skiprows=13,header=None)[0:1]
     names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
     df = pd.read_csv(filepath,skiprows=15,names=names)
-    frag = 2000
+    frag = pseudo_cutoff_value
 
     #peak_analysis
     target = imaging_element
@@ -145,4 +133,3 @@ def finishing(filepath):
 #[iq3_imaging(filepath,standard_element, ie) for ie in get_element_list(filepath)]
 [iq3_imaging(filepath,standard_element, ie) for ie in ['25Mg']]
 finishing(filepath)
-"""
