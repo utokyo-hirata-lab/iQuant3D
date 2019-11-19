@@ -9,12 +9,6 @@ from matplotlib.colors import LogNorm
 import os.path
 import glob
 
-#-----------------------------
-filepath = '20191110_3dimaging_001_1.csv'
-standard_element = '206Pb'
-washout = 20
-#----------------------------
-
 class pycolor:
     BLACK = '\033[30m'
     RED = '\033[31m'
@@ -30,8 +24,6 @@ class pycolor:
     INVISIBLE = '\033[08m'
     REVERCE = '\033[07m'
 
-#user_input
-
 class iq3t():
     def __init__(self,folder,standard_element,washout):
         self.standard_element = standard_element
@@ -40,7 +32,7 @@ class iq3t():
 
     def get_element_list(self,filepath):
         print('[ '+pycolor.YELLOW+'Processing'+pycolor.END+' ] '+filepath)
-        elements = pd.read_csv(filepath,skiprows=13,header=None,dtype = 'str')[0:1]
+        elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str')[0:1]
         names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
         return names[1:len(names)-1]
 
@@ -55,7 +47,7 @@ class iq3t():
 
     def time_stamp(self, n, filepath,standard_element):
         ts = []
-        elements = pd.read_csv(filepath,skiprows=13,header=None)[0:1]
+        elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str')[0:1]
         names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
         df = pd.read_csv(filepath,skiprows=15,names=names)
         frag = 2000
@@ -68,9 +60,9 @@ class iq3t():
                 count = 0
             if t < frag:
                 count += 1
-            if count >= washout:
-                x = df['Time'][i_init-1 :i-washout-1]
-                y = df[standard_element][i_init-1 :i-washout-1]
+            if count >= self.washout:
+                x = df['Time'][i_init-1 :i-self.washout-1]
+                y = df[standard_element][i_init-1 :i-self.washout-1]
                 if len(y) > 570:
                     ts.append([x.min(),x.max()])
                     i_init = 0
