@@ -1,13 +1,18 @@
-
+import os
+import os.path
+import sys
+import glob
 import csv
+import shutil
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import sys
 import seaborn as sns
+import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-import os.path
-import glob
+from statistics import mean, median,variance,stdev
+from PIL import Image
+from skimage import data
+from sklearn.cluster import KMeans
 
 class pycolor:
     BLACK = '\033[30m'
@@ -69,7 +74,18 @@ class iq3t():
                     linenum += 1
                     count = 0
             i += 1
-        return ts
+        width,fixed_ts = [],[]
+        for i in ts:
+            width.append(i[1]-i[0])
+        front_anchor = []
+        for i in range(len(ts)-1):
+            front_anchor.append(ts[i+1][0]-ts[i][0])
+        peak_span = mean(front_anchor)
+        t = int(ts[0][0])
+        for i in ts:
+            fixed_ts.append([t-2,t+int(mean(width))+2])
+            t += peak_span
+        return fixed_ts
 
     def iq3_imaging(self,filepath,standard_element,imaging_element,time_stamp):
         elements = pd.read_csv(filepath,skiprows=13,header=None)[0:1]
@@ -117,6 +133,34 @@ class iq3t():
         print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
         plt.close()
 
+    def iq3_imaging_rapid(self,filepath,standard_element,imaging_element,time_stamp):
+        elements = pd.read_csv(filepath,skiprows=13,header=None)[0:1]
+        names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
+        df = pd.read_csv(filepath,skiprows=15,names=names)
+        #peak_analysis
+        target = imaging_element
+        merged_line = pd.DataFrame()
+        linenum = 0
+        for tsp in time_stamp:
+            y = df.query('%d < Time < %f' % (tsp[0],tsp[1]))[target]
+            merged_line['line'+str(linenum)] = pd.Series(list(y))
+            linenum += 1
+
+        merged_line = merged_line+1E5
+
+        plt.figure()
+        sns.heatmap(merged_line.T,cmap='jet',norm=LogNorm(vmin=merged_line.values.min(), vmax=merged_line.values.max()),cbar=None)
+        plt.title(imaging_element)
+        #outname = filepath.split('.')[0]+'_'+imaging_element+'_mapping.pdf'
+        #print('[ '+pycolor.GREEN+'Generate'+pycolor.END+' ] '+outname)
+        #plt.savefig(outname)
+        #print('[ '+pycolor.BLUE+'Success'+pycolor.END+'  ] '+outname)
+        outname = filepath.split('.')[0]+'_'+imaging_element+'_mapping.png'
+        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
+        plt.savefig(outname)
+        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
+        plt.close()
+
     def finishing(self):
         print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'    ] *.xlsx > result')
         dirname = os.getcwd()+'/'+self.folder+'/result'
@@ -138,7 +182,40 @@ class iq3t():
         if os.path.isdir(dirname) == False:os.mkdir(dirname)
         os.system('mv '+self.folder+'/*mapping.png '+self.folder+'/mapping')
 
+    def clustering(self,cnumber):
+        if os.path.isdir(self.folder+'/mapping_group') == True:
+            os.system('rm -rf '+self.folder+'/mapping_group')
+            print('[ '+pycolor.YELLOW+'Remove'+pycolor.END+'     ] data/mapping_group')
+
+        for path in os.listdir(self.folder+'/mapping'):
+            #path = path.split('.')[0]
+            if os.path.isdir(self.folder+'/mapping_convert') == False:os.mkdir(self.folder+'/mapping_convert')
+            #if os.path.isdir(self.folder+'/mapping_group') == False:os.mkdir(self.folder+'/mapping_group')
+            img = Image.open(f'{self.folder}/mapping/{path}')
+            img = img.convert('RGB')
+            img_resize = img.resize((200, 200))
+            path = path.split('.')[0]
+            img_resize.save(f'{self.folder}/mapping_convert/{path}.jpg')
+        feature = np.array([data.imread(f'{self.folder}/mapping_convert/{path}') for path in os.listdir(self.folder+'/mapping_convert')])
+        feature = feature.reshape(len(feature), -1).astype(np.float64)
+        model = KMeans(n_clusters=cnumber).fit(feature)
+        labels = model.labels_
+        for label, path in zip(labels, os.listdir(self.folder+'/mapping_convert')):
+            os.makedirs(f'{self.folder}/mapping_group/{label}', exist_ok=True)
+            shutil.copyfile(f"{self.folder}/mapping/{path.replace('.jpg', '.png')}", f"{self.folder}/mapping_group/{label}/{path.replace('.jpg', '.png')}")
+            print('[ '+pycolor.BLUE+'Clustering'+pycolor.END+' ] '+ path + ' > ' + str(label))
+
+    def finish_code(self):
+        print('[ '+pycolor.YELLOW+'Shutdown'+pycolor.END+'   ] Thank you for always using iQuant3D-terminal.')
+
     def run(self):
         datalist = glob.glob(os.getcwd()+'/'+self.folder+'/*.csv')
-        [[self.iq3_imaging(filepath,self.standard_element, ie, self.time_stamp(3,datalist[0],self.standard_element)) for ie in self.get_element_list(filepath)] for filepath in datalist]
+        ts = self.time_stamp(3,datalist[0],self.standard_element)
+        [[self.iq3_imaging(filepath,self.standard_element, ie, ts) for ie in self.get_element_list(filepath)] for filepath in datalist]
+        self.finishing()
+
+    def run_rapid(self):
+        datalist = glob.glob(os.getcwd()+'/'+self.folder+'/*.csv')
+        ts = self.time_stamp(3,datalist[0],self.standard_element)
+        [[self.iq3_imaging_rapid(filepath,self.standard_element, ie, ts) for ie in self.get_element_list(filepath)] for filepath in datalist]
         self.finishing()
