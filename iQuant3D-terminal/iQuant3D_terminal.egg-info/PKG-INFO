@@ -1,0 +1,17 @@
+Metadata-Version: 1.1
+Name: iQuant3D-terminal
+Version: 0.1.1
+Summary: Multi-elemnt 3D-imaging software without GUI
+Home-page: https://github.com/utokyo-hirata-lab/iQuant3D/iquant3d_terminal
+Author: Wataru Takahagi
+Author-email: watarut@eqchem.s.u-tokyo.ac.jp
+License: UNKNOWN
+Description: UNKNOWN
+Keywords: visualization data-science
+Platform: UNKNOWN
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Scientific/Engineering :: Chemistry
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
