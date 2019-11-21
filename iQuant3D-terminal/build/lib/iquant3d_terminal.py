@@ -40,7 +40,7 @@ class iq3t():
 
     def get_element_list(self,filepath):
         print('[ '+pycolor.YELLOW+'Processing'+pycolor.END+' ] '+filepath)
-        elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str')[0:1]
+        elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str',low_memory=False)[0:1]
         names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
         return names[1:len(names)-1]
 
@@ -55,9 +55,9 @@ class iq3t():
 
     def time_stamp(self,filepath,standard_element):
         ts = []
-        elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str')[0:1]
+        elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str',low_memory=False)[0:1]
         names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
-        df = pd.read_csv(filepath,skiprows=15,names=names)
+        df = pd.read_csv(filepath,skiprows=15,names=names,low_memory=False)
         frag = 2000
         pco_std = self.noise_cut(self.noise_cut_factor,df[standard_element])
         count,i,i_init,linenum = -1E5,0,0,0
@@ -91,9 +91,9 @@ class iq3t():
         return fixed_ts
 
     def iq3_imaging(self,filepath,standard_element,imaging_element,time_stamp):
-        elements = pd.read_csv(filepath,skiprows=13,header=None)[0:1]
+        elements = pd.read_csv(filepath,skiprows=13,header=None,low_memory=False)[0:1]
         names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
-        df = pd.read_csv(filepath,skiprows=15,names=names)
+        df = pd.read_csv(filepath,skiprows=15,names=names,low_memory=False)
 
         #peak_analysis
         target = imaging_element
@@ -225,3 +225,14 @@ class iq3t():
         ts = self.time_stamp(datalist[0],self.standard_element)
         [[self.iq3_imaging_rapid(filepath,self.standard_element, ie, ts) for ie in self.get_element_list(filepath)] for filepath in datalist]
         self.finishing()
+
+    def run_test(self):
+        datalist = glob.glob(self.folder+'/*.csv')
+        ts = self.time_stamp(datalist[0],self.standard_element)
+        self.iq3_imaging(datalist[0],self.standard_element, self.standard_element, ts)
+        dirname = self.folder+'/test_scan'
+        if os.path.isdir(dirname) == False:os.mkdir(dirname)
+        os.system('mv '+self.folder+'/*.xlsx '+self.folder+'/test_scan')
+        os.system('mv '+self.folder+'/*signal.pdf '+self.folder+'/test_scan')
+        os.system('mv '+self.folder+'/*mapping.png '+self.folder+'/test_scan')
+        print('[ '+pycolor.YELLOW+'Checking'+pycolor.END+'   ] Please check /data/test_scan folder.')

@@ -4,6 +4,7 @@ import os.path
 import sys
 import glob
 import csv
+import xlrd
 import shutil
 import pandas as pd
 import numpy as np
@@ -58,7 +59,7 @@ class iq3t():
         elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str',low_memory=False)[0:1]
         names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
         df = pd.read_csv(filepath,skiprows=15,names=names,low_memory=False)
-        frag = 2000
+        frag = 200
         pco_std = self.noise_cut(self.noise_cut_factor,df[standard_element])
         count,i,i_init,linenum = -1E5,0,0,0
         for t in pco_std:
@@ -71,7 +72,7 @@ class iq3t():
             if count >= self.washout:
                 x = df['Time'][i_init-1 :i-self.washout-1]
                 y = df[standard_element][i_init-1 :i-self.washout-1]
-                if len(y) > 570:
+                if len(y) > 200:
                     ts.append([x.min(),x.max()])
                     i_init = 0
                     linenum += 1
@@ -121,7 +122,7 @@ class iq3t():
         print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
         merged_line.T.to_excel(outname, sheet_name=imaging_element)
         print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
-        backsignal = 1E5
+        backsignal = 1E4
         merged_line = merged_line + backsignal
 
         #plt.figure()
@@ -155,7 +156,7 @@ class iq3t():
             merged_line['line'+str(linenum)] = pd.Series(list(y))
             linenum += 1
 
-        merged_line = merged_line+1E5
+        merged_line = merged_line +1E5
 
         sns.set()
         plt.style.use('dark_background')
@@ -210,6 +211,32 @@ class iq3t():
             os.makedirs(f'{self.folder}/mapping_group/{label}', exist_ok=True)
             shutil.copyfile(f"{self.folder}/mapping/{path.replace('.jpg', '.png')}", f"{self.folder}/mapping_group/{label}/{path.replace('.jpg', '.png')}")
             print('[ '+pycolor.BLUE+'Clustering'+pycolor.END+' ] '+ path + ' > ' + str(label))
+
+    def multi_layer(self,element):
+        outname = self.folder+'/'+element+'_3D.png'
+        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
+        datalist = sorted(glob.glob(self.folder+'/result/*'+element+'.xlsx'))
+        input_book = pd.read_excel(datalist[0], index_col=0)
+        vmin = input_book.values.min()
+        vmax = input_book.values.max()
+        plt.figure(figsize=(6*len(datalist),6))
+        for i in range(len(datalist)):
+            plt.subplot(1,len(datalist),i+1)
+            input_book = pd.read_excel(datalist[i], index_col=0)
+            sns.set()
+            plt.style.use('dark_background')
+            input_book = input_book + 1E4
+            sns.heatmap(input_book,cmap='jet',xticklabels=False,yticklabels=False,norm=LogNorm(vmin=vmin, vmax=vmax),cbar=False)
+            print('[ '+pycolor.GREEN+'Sectioning'+pycolor.END+' ] '+datalist[i])
+            plt.title(element+' (Layer='+datalist[i].split('/')[-1].split('_')[0]+')',color='white',fontsize=18, fontweight="bold")
+        plt.tight_layout()
+        plt.savefig(outname)
+        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
+        dirname = self.folder+'/multi_layer'
+        if os.path.isdir(dirname) == False:os.mkdir(dirname)
+        os.system('mv '+self.folder+'/*.png '+self.folder+'/multi_layer')
+        print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'    ] '+element+'_3D.png > multi_layer')
+        plt.close()
 
     def finish_code(self):
         print('[ '+pycolor.YELLOW+'Shutdown'+pycolor.END+'   ] Thank you for always using iQuant3D-terminal.')
