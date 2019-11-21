@@ -1,3 +1,4 @@
+README.md
 iquant3d_terminal.py
 setup.py
 iQuant3D_terminal.egg-info/PKG-INFO

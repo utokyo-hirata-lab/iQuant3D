@@ -1,3 +1,4 @@
+import re
 import os
 import os.path
 import sys
@@ -30,10 +31,12 @@ class pycolor:
     REVERCE = '\033[07m'
 
 class iq3t():
-    def __init__(self,folder,standard_element,washout):
+    def __init__(self,folder,standard_element,washout,band_width):
         self.standard_element = standard_element
         self.washout = washout
-        self.folder = folder
+        self.folder = os.getcwd()+'/'+folder
+        self.band_width = band_width
+        self.noise_cut_factor = 3
 
     def get_element_list(self,filepath):
         print('[ '+pycolor.YELLOW+'Processing'+pycolor.END+' ] '+filepath)
@@ -50,13 +53,13 @@ class iq3t():
         for i in range(n):y.append(0)
         return y
 
-    def time_stamp(self, n, filepath,standard_element):
+    def time_stamp(self,filepath,standard_element):
         ts = []
         elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str')[0:1]
         names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
         df = pd.read_csv(filepath,skiprows=15,names=names)
         frag = 2000
-        pco_std = self.noise_cut(n,df[standard_element])
+        pco_std = self.noise_cut(self.noise_cut_factor,df[standard_element])
         count,i,i_init,linenum = -1E5,0,0,0
         for t in pco_std:
             if t > frag:
@@ -118,11 +121,16 @@ class iq3t():
         print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
         merged_line.T.to_excel(outname, sheet_name=imaging_element)
         print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
-        merged_line = merged_line+1E5
+        backsignal = 1E5
+        merged_line = merged_line + backsignal
 
-        plt.figure()
-        sns.heatmap(merged_line.T,cmap='jet',norm=LogNorm(vmin=merged_line.values.min(), vmax=merged_line.values.max()),cbar=None)
-        plt.title(imaging_element)
+        #plt.figure()
+        sns.set()
+        plt.style.use('dark_background')
+        grid_kws = {"height_ratios": (.9, .05), "hspace": .1}
+        fig, (ax, cbar_ax) = plt.subplots(2, gridspec_kw=grid_kws, figsize=(9,9))
+        sns.heatmap(merged_line.T,cmap='jet',xticklabels=False,yticklabels=False,norm=LogNorm(vmin=merged_line.values.min(), vmax=merged_line.values.max()),ax=ax,cbar_ax=cbar_ax,cbar_kws={"orientation": "horizontal"})
+        ax.set_title(imaging_element,color='white',fontsize=18, fontweight="bold")
         #outname = filepath.split('.')[0]+'_'+imaging_element+'_mapping.pdf'
         #print('[ '+pycolor.GREEN+'Generate'+pycolor.END+' ] '+outname)
         #plt.savefig(outname)
@@ -131,7 +139,8 @@ class iq3t():
         print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
         plt.savefig(outname)
         print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
-        plt.close()
+        plt.style.use('default')
+        plt.close(fig)
 
     def iq3_imaging_rapid(self,filepath,standard_element,imaging_element,time_stamp):
         elements = pd.read_csv(filepath,skiprows=13,header=None)[0:1]
@@ -148,27 +157,24 @@ class iq3t():
 
         merged_line = merged_line+1E5
 
-        plt.figure()
-        sns.heatmap(merged_line.T,cmap='jet',norm=LogNorm(vmin=merged_line.values.min(), vmax=merged_line.values.max()),cbar=None)
-        plt.title(imaging_element)
-        #outname = filepath.split('.')[0]+'_'+imaging_element+'_mapping.pdf'
-        #print('[ '+pycolor.GREEN+'Generate'+pycolor.END+' ] '+outname)
-        #plt.savefig(outname)
-        #print('[ '+pycolor.BLUE+'Success'+pycolor.END+'  ] '+outname)
+        sns.set()
+        plt.style.use('dark_background')
+        sns.heatmap(merged_line.T,cmap='jet',xticklabels=False,yticklabels=False,norm=LogNorm(vmin=merged_line.values.min(), vmax=merged_line.values.max()),cbar=False)
         outname = filepath.split('.')[0]+'_'+imaging_element+'_mapping.png'
         print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
-        plt.savefig(outname)
+        plt.tight_layout()
+        plt.savefig(outname,facecolor="black", edgecolor="black")
         print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
         plt.close()
 
     def finishing(self):
         print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'    ] *.xlsx > result')
-        dirname = os.getcwd()+'/'+self.folder+'/result'
+        dirname = self.folder+'/result'
         if os.path.isdir(dirname) == False:os.mkdir(dirname)
         os.system('mv '+self.folder+'/*.xlsx '+self.folder+'/result')
 
         print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'    ] *signal.pdf > signal')
-        dirname = os.getcwd()+'/'+self.folder+'/signal'
+        dirname = self.folder+'/signal'
         if os.path.isdir(dirname) == False:os.mkdir(dirname)
         os.system('mv '+self.folder+'/*signal.pdf '+self.folder+'/signal')
 
@@ -178,7 +184,7 @@ class iq3t():
         #os.system('mv *mapping.pdf mapping')
 
         print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'    ] *mapping.png > mapping')
-        dirname = os.getcwd()+'/'+self.folder+'/mapping'
+        dirname = self.folder+'/mapping'
         if os.path.isdir(dirname) == False:os.mkdir(dirname)
         os.system('mv '+self.folder+'/*mapping.png '+self.folder+'/mapping')
 
@@ -209,13 +215,24 @@ class iq3t():
         print('[ '+pycolor.YELLOW+'Shutdown'+pycolor.END+'   ] Thank you for always using iQuant3D-terminal.')
 
     def run(self):
-        datalist = glob.glob(os.getcwd()+'/'+self.folder+'/*.csv')
-        ts = self.time_stamp(3,datalist[0],self.standard_element)
+        datalist = glob.glob(self.folder+'/*.csv')
+        ts = self.time_stamp(datalist[0],self.standard_element)
         [[self.iq3_imaging(filepath,self.standard_element, ie, ts) for ie in self.get_element_list(filepath)] for filepath in datalist]
         self.finishing()
 
     def run_rapid(self):
-        datalist = glob.glob(os.getcwd()+'/'+self.folder+'/*.csv')
-        ts = self.time_stamp(3,datalist[0],self.standard_element)
+        datalist = glob.glob(self.folder+'/*.csv')
+        ts = self.time_stamp(datalist[0],self.standard_element)
         [[self.iq3_imaging_rapid(filepath,self.standard_element, ie, ts) for ie in self.get_element_list(filepath)] for filepath in datalist]
         self.finishing()
+
+    def run_test(self):
+        datalist = glob.glob(self.folder+'/*.csv')
+        ts = self.time_stamp(datalist[0],self.standard_element)
+        self.iq3_imaging(datalist[0],self.standard_element, self.standard_element, ts)
+        dirname = self.folder+'/test_scan'
+        if os.path.isdir(dirname) == False:os.mkdir(dirname)
+        os.system('mv '+self.folder+'/*.xlsx '+self.folder+'/test_scan')
+        os.system('mv '+self.folder+'/*signal.pdf '+self.folder+'/test_scan')
+        os.system('mv '+self.folder+'/*mapping.png '+self.folder+'/test_scan')
+        print('[ '+pycolor.YELLOW+'Checking'+pycolor.END+'   ] Please check /data/test_scan folder.')
