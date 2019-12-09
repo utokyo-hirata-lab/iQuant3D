@@ -41,9 +41,11 @@ class iq3t():
 
     def get_element_list(self,filepath):
         print('[ '+pycolor.YELLOW+'Processing'+pycolor.END+' ] '+filepath)
-        elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str',low_memory=False)[0:1]
-        names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
-        return names[1:len(names)-1]
+        elements = pd.read_csv(filepath,skiprows=None,header=None,dtype='str',low_memory=False)[0:1]
+        elseries = elements.loc[0][0:len(elements.loc[0])]
+        names = [re.sub(r"[^a-zA-Z0-9_]", "", str(i)) for i in elseries]
+        #print(names)
+        return names
 
     def noise_cut(self,n,data):
         y = []
@@ -56,11 +58,13 @@ class iq3t():
 
     def time_stamp(self,filepath,standard_element):
         ts = []
-        elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str',low_memory=False)[0:1]
-        names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
-        df = pd.read_csv(filepath,skiprows=15,names=names,low_memory=False)
-        frag = 200
-        pco_std = self.noise_cut(self.noise_cut_factor,df[standard_element])
+        #elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str',low_memory=False)[0:1]
+        names = self.get_element_list(filepath)
+        df = pd.read_csv(filepath,skiprows=1,names=names,low_memory=False, dtype='float64').astype(float)
+        #print(df)
+        frag = 2000
+        #pco_std = self.noise_cut(self.noise_cut_factor,df[standard_element])
+        pco_std = df[standard_element]
         count,i,i_init,linenum = -1E5,0,0,0
         for t in pco_std:
             if t > frag:
@@ -70,9 +74,9 @@ class iq3t():
             if t < frag:
                 count += 1
             if count >= self.washout:
-                x = df['Time'][i_init-1 :i-self.washout-1]
+                x = df['t_elapsed_Buf'][i_init-1 :i-self.washout-1]
                 y = df[standard_element][i_init-1 :i-self.washout-1]
-                if len(y) > 200:
+                if len(y) > 50:
                     ts.append([x.min(),x.max()])
                     i_init = 0
                     linenum += 1
@@ -92,9 +96,8 @@ class iq3t():
         return fixed_ts
 
     def iq3_imaging(self,filepath,standard_element,imaging_element,time_stamp):
-        elements = pd.read_csv(filepath,skiprows=13,header=None,low_memory=False)[0:1]
-        names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
-        df = pd.read_csv(filepath,skiprows=15,names=names,low_memory=False)
+        names = self.get_element_list(filepath)
+        df = pd.read_csv(filepath,skiprows=1,names=names,low_memory=False).astype(float)
 
         #peak_analysis
         target = imaging_element
@@ -102,11 +105,12 @@ class iq3t():
         fig = plt.figure(figsize=(15,3))
         ax = fig.add_subplot(111)
         plt.rcParams['lines.linewidth'] = 0.3
-        plt.plot(df['Time'],df[target],color='black',linewidth=0.3)
+        plt.plot(df['t_elapsed_Buf'],df[target],color='black',linewidth=0.3)
+        #print(df['t_elapsed_Buf'])
 
         linenum = 0
         for tsp in time_stamp:
-            y = df.query('%d < Time < %f' % (tsp[0],tsp[1]))[target]
+            y = df.query('%d < t_elapsed_Buf < %f' % (tsp[0],tsp[1]))[target]
             merged_line['line'+str(linenum)] = pd.Series(list(y))
             ax.axvspan(tsp[0],tsp[1],color = "lightgray")
             linenum += 1
@@ -142,31 +146,6 @@ class iq3t():
         print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
         plt.style.use('default')
         plt.close(fig)
-
-    def iq3_imaging_rapid(self,filepath,standard_element,imaging_element,time_stamp):
-        elements = pd.read_csv(filepath,skiprows=13,header=None)[0:1]
-        names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
-        df = pd.read_csv(filepath,skiprows=15,names=names)
-        #peak_analysis
-        target = imaging_element
-        merged_line = pd.DataFrame()
-        linenum = 0
-        for tsp in time_stamp:
-            y = df.query('%d < Time < %f' % (tsp[0],tsp[1]))[target]
-            merged_line['line'+str(linenum)] = pd.Series(list(y))
-            linenum += 1
-
-        merged_line = merged_line +1E5
-
-        sns.set()
-        plt.style.use('dark_background')
-        sns.heatmap(merged_line.T,cmap='jet',xticklabels=False,yticklabels=False,norm=LogNorm(vmin=merged_line.values.min(), vmax=merged_line.values.max()),cbar=False)
-        outname = filepath.split('.')[0]+'_'+imaging_element+'_mapping.png'
-        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
-        plt.tight_layout()
-        plt.savefig(outname,facecolor="black", edgecolor="black")
-        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
-        plt.close()
 
     def finishing(self):
         print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'    ] *.xlsx > result')
