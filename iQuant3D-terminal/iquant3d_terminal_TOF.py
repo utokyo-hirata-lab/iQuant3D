@@ -62,7 +62,7 @@ class iq3t():
         names = self.get_element_list(filepath)
         df = pd.read_csv(filepath,skiprows=1,names=names,low_memory=False, dtype='float64').astype(float)
         #print(df)
-        frag = 2000
+        frag = 300
         #pco_std = self.noise_cut(self.noise_cut_factor,df[standard_element])
         pco_std = df[standard_element]
         count,i,i_init,linenum = -1E5,0,0,0
@@ -93,7 +93,7 @@ class iq3t():
         for i in ts:
             fixed_ts.append([t-2,t+int(mean(width))+2])
             t += peak_span
-        return fixed_ts
+        return ts
 
     def iq3_imaging(self,filepath,standard_element,imaging_element,time_stamp):
         names = self.get_element_list(filepath)
@@ -126,7 +126,7 @@ class iq3t():
         print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
         merged_line.T.to_excel(outname, sheet_name=imaging_element)
         print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
-        backsignal = 1E4
+        backsignal = 1E2
         merged_line = merged_line + backsignal
 
         #plt.figure()
