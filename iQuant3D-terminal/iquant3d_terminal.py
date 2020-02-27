@@ -1,3 +1,4 @@
+#iQuant3D-termial (ZEBRA) Feb 24, 2020
 import re
 import os
 import os.path
@@ -9,12 +10,15 @@ import shutil
 import pandas as pd
 import numpy as np
 import seaborn as sns
+import scipy.ndimage as ndimage
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from statistics import mean, median,variance,stdev
 from PIL import Image
 from skimage import data
 from sklearn.cluster import KMeans
+from scipy.signal import argrelmax
+from scipy import fftpack
 
 class pycolor:
     BLACK = '\033[30m'
@@ -32,17 +36,22 @@ class pycolor:
     REVERCE = '\033[07m'
 
 class iq3t():
-    def __init__(self,folder,standard_element,washout,band_width):
+    def __init__(self,folder,standard_element,washout=20,threshold=10000,band_width=100):
+        print('[ '+pycolor.YELLOW+'Welcome'+pycolor.END+'     ] iQuant3D-terminal (ZEBRA)')
         self.standard_element = standard_element
         self.washout = washout
         self.folder = os.getcwd()+'/'+folder
         self.band_width = band_width
         self.noise_cut_factor = 3
+        self.elements = []
+        self.threshold = threshold
 
     def get_element_list(self,filepath):
-        print('[ '+pycolor.YELLOW+'Processing'+pycolor.END+' ] '+filepath)
+        print('[ '+pycolor.YELLOW+'Processing'+pycolor.END+'  ] '+filepath)
         elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str',low_memory=False)[0:1]
         names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
+        self.elements = names[1:len(names)-1]
+        #print(names)
         return names[1:len(names)-1]
 
     def noise_cut(self,n,data):
@@ -58,8 +67,10 @@ class iq3t():
         ts = []
         elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str',low_memory=False)[0:1]
         names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
+        #print(names)
         df = pd.read_csv(filepath,skiprows=15,names=names,low_memory=False)
-        frag = 200
+        #print(df)
+        frag = self.threshold
         pco_std = self.noise_cut(self.noise_cut_factor,df[standard_element])
         count,i,i_init,linenum = -1E5,0,0,0
         for t in pco_std:
@@ -72,7 +83,7 @@ class iq3t():
             if count >= self.washout:
                 x = df['Time'][i_init-1 :i-self.washout-1]
                 y = df[standard_element][i_init-1 :i-self.washout-1]
-                if len(y) > 200:
+                if len(y) > 50:
                     ts.append([x.min(),x.max()])
                     i_init = 0
                     linenum += 1
@@ -89,7 +100,53 @@ class iq3t():
         for i in ts:
             fixed_ts.append([t-2,t+int(mean(width))+2])
             t += peak_span
-        return fixed_ts
+        #return fixed_ts
+        return ts
+
+    def time_stamp_zebra(self,filepath,standard_element):
+        elements = pd.read_csv(filepath,skiprows=13,header=None,dtype='str',low_memory=False)[0:1]
+        names = [str(elements[i][0]).split('|')[0].replace(' ','') for i in range(len(elements.columns))]
+        #print(names)
+        df = pd.read_csv(filepath,skiprows=15,names=names,low_memory=False)
+        frag = self.threshold
+        times,elms,ts = [],[],[]
+        state = 0
+        for i in range(len(df[standard_element])):
+            if state == 0 and df[standard_element][i] > frag:
+                state = 1
+                t,e = [],[]
+            if state == 1:
+                t.append(df['Time'][i])
+                #print(df['Time'][i])
+                e.append(df[standard_element][i])
+                #times.append(df['Time'][i])
+                #elms.append(df['53Cr'][i])
+            if state == 1 and df[standard_element][i] < frag:
+                #ts.append(pd.Series(t).mean())
+
+                #elms.append(e)
+                #t,e = [],[]
+                #plt.plot(t,e,color='red')
+                #print(t.mean())
+                if len(t) > 5:
+                    times.append(pd.Series(t).mean())
+                    #plt.plot(t,e,color='red')
+                state = 0
+            #print(state)
+        #for i in range(len([df['53Cr'])):
+        for i in range(len(times)-1):
+            if i % 2 == 0:
+                ts.append([times[i],times[i+1]])
+                #print(times)
+        #print(len(ts))
+        """
+        time = df[df['53Cr'] > frag]['Time']
+        elm = df[df['53Cr'] > frag]['53Cr']
+        """
+        #plt.plot(df['Time'],df['53Cr'])
+        #plt.scatter(times,elms)
+        #plt.show()
+        return ts
 
     def iq3_imaging(self,filepath,standard_element,imaging_element,time_stamp):
         elements = pd.read_csv(filepath,skiprows=13,header=None,low_memory=False)[0:1]
@@ -103,7 +160,6 @@ class iq3t():
         ax = fig.add_subplot(111)
         plt.rcParams['lines.linewidth'] = 0.3
         plt.plot(df['Time'],df[target],color='black',linewidth=0.3)
-
         linenum = 0
         for tsp in time_stamp:
             y = df.query('%d < Time < %f' % (tsp[0],tsp[1]))[target]
@@ -113,35 +169,43 @@ class iq3t():
 
         #plt.show()
         outname = filepath.split('.')[0]+'_'+imaging_element+'_signal.pdf'
-        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
+        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'    ] '+outname)
         plt.savefig(outname)
-        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
+        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'     ] '+outname)
         plt.close()
 
         outname = filepath.split('.')[0]+'_'+imaging_element+'.xlsx'
-        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
+        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'    ] '+outname)
         merged_line.T.to_excel(outname, sheet_name=imaging_element)
-        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
+        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'     ] '+outname)
         backsignal = 1E4
         merged_line = merged_line + backsignal
 
         #plt.figure()
         sns.set()
         plt.style.use('dark_background')
-        grid_kws = {"height_ratios": (.9, .05), "hspace": .1}
-        fig, (ax, cbar_ax) = plt.subplots(2, gridspec_kw=grid_kws, figsize=(9,9))
-        sns.heatmap(merged_line.T,cmap='jet',xticklabels=False,yticklabels=False,norm=LogNorm(vmin=merged_line.values.min(), vmax=merged_line.values.max()),ax=ax,cbar_ax=cbar_ax,cbar_kws={"orientation": "horizontal"})
-        ax.set_title(imaging_element,color='white',fontsize=18, fontweight="bold")
+        #grid_kws = {"height_ratios": (.9, .05), "hspace": .1}
+        #fig, (ax, cbar_ax) = plt.subplots(2, gridspec_kw=grid_kws, figsize=(9,9))
+        plt.figure()
+        ax = plt.subplot(111)
+        #GaussianBlur
+        #img_raw = cv2.imread(merged_line.T, 1)
+        #img = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY)
+
+        #sns.heatmap(merged_line.T,cmap='gnuplot2',xticklabels=False,yticklabels=False,norm=LogNorm(vmin=merged_line.values.min(), vmax=merged_line.values.max()),ax=ax,cbar_ax=cbar_ax,cbar_kws={"orientation": "horizontal"})
+        sns.heatmap(merged_line.T,cmap='jet',xticklabels=False,yticklabels=False,norm=LogNorm(vmin=merged_line.values.min(), vmax=merged_line.values.max()),ax=ax,cbar=False)
+        #ax.set_title(imaging_element,color='white',fontsize=18, fontweight="bold")
         #outname = filepath.split('.')[0]+'_'+imaging_element+'_mapping.pdf'
         #print('[ '+pycolor.GREEN+'Generate'+pycolor.END+' ] '+outname)
         #plt.savefig(outname)
         #print('[ '+pycolor.BLUE+'Success'+pycolor.END+'  ] '+outname)
+        plt.tight_layout()
         outname = filepath.split('.')[0]+'_'+imaging_element+'_mapping.png'
-        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
+        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'    ] '+outname)
         plt.savefig(outname)
-        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
+        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'     ] '+outname)
         plt.style.use('default')
-        plt.close(fig)
+        plt.close('all')
 
     def iq3_imaging_rapid(self,filepath,standard_element,imaging_element,time_stamp):
         elements = pd.read_csv(filepath,skiprows=13,header=None)[0:1]
@@ -162,19 +226,19 @@ class iq3t():
         plt.style.use('dark_background')
         sns.heatmap(merged_line.T,cmap='jet',xticklabels=False,yticklabels=False,norm=LogNorm(vmin=merged_line.values.min(), vmax=merged_line.values.max()),cbar=False)
         outname = filepath.split('.')[0]+'_'+imaging_element+'_mapping.png'
-        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
+        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'    ] '+outname)
         plt.tight_layout()
         plt.savefig(outname,facecolor="black", edgecolor="black")
-        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
+        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'     ] '+outname)
         plt.close()
 
     def finishing(self):
-        print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'    ] *.xlsx > result')
+        print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'     ] *.xlsx > result')
         dirname = self.folder+'/result'
         if os.path.isdir(dirname) == False:os.mkdir(dirname)
         os.system('mv '+self.folder+'/*.xlsx '+self.folder+'/result')
 
-        print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'    ] *signal.pdf > signal')
+        print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'     ] *signal.pdf > signal')
         dirname = self.folder+'/signal'
         if os.path.isdir(dirname) == False:os.mkdir(dirname)
         os.system('mv '+self.folder+'/*signal.pdf '+self.folder+'/signal')
@@ -184,7 +248,7 @@ class iq3t():
         #if os.path.isdir(dirname) == False:os.mkdir(dirname)
         #os.system('mv *mapping.pdf mapping')
 
-        print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'    ] *mapping.png > mapping')
+        print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'     ] *mapping.png > mapping')
         dirname = self.folder+'/mapping'
         if os.path.isdir(dirname) == False:os.mkdir(dirname)
         os.system('mv '+self.folder+'/*mapping.png '+self.folder+'/mapping')
@@ -192,7 +256,7 @@ class iq3t():
     def clustering(self,cnumber):
         if os.path.isdir(self.folder+'/mapping_group') == True:
             os.system('rm -rf '+self.folder+'/mapping_group')
-            print('[ '+pycolor.YELLOW+'Remove'+pycolor.END+'     ] data/mapping_group')
+            print('[ '+pycolor.YELLOW+'Remove'+pycolor.END+'      ] data/mapping_group')
 
         for path in os.listdir(self.folder+'/mapping'):
             #path = path.split('.')[0]
@@ -210,56 +274,85 @@ class iq3t():
         for label, path in zip(labels, os.listdir(self.folder+'/mapping_convert')):
             os.makedirs(f'{self.folder}/mapping_group/{label}', exist_ok=True)
             shutil.copyfile(f"{self.folder}/mapping/{path.replace('.jpg', '.png')}", f"{self.folder}/mapping_group/{label}/{path.replace('.jpg', '.png')}")
-            print('[ '+pycolor.BLUE+'Clustering'+pycolor.END+' ] '+ path + ' > ' + str(label))
+            print('[ '+pycolor.BLUE+'Clustering'+pycolor.END+'  ] '+ path + ' > ' + str(label))
 
     def multi_layer(self,element):
-        outname = self.folder+'/'+element+'_3D.png'
-        print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
-        datalist = sorted(glob.glob(self.folder+'/result/*'+element+'.xlsx'))
-        input_book = pd.read_excel(datalist[0], index_col=0)
-        vmin = input_book.values.min()
-        vmax = input_book.values.max()
-        plt.figure(figsize=(6*len(datalist),6))
-        for i in range(len(datalist)):
-            plt.subplot(1,len(datalist),i+1)
-            input_book = pd.read_excel(datalist[i], index_col=0)
-            sns.set()
-            plt.style.use('dark_background')
-            input_book = input_book + 1E4
-            sns.heatmap(input_book,cmap='jet',xticklabels=False,yticklabels=False,norm=LogNorm(vmin=vmin, vmax=vmax),cbar=False)
-            print('[ '+pycolor.GREEN+'Sectioning'+pycolor.END+' ] '+datalist[i])
-            plt.title(element+' (Layer='+datalist[i].split('/')[-1].split('_')[0]+')',color='white',fontsize=18, fontweight="bold")
-        plt.tight_layout()
-        plt.savefig(outname)
-        print('[ '+pycolor.BLUE+'Success'+pycolor.END+'    ] '+outname)
-        dirname = self.folder+'/multi_layer'
-        if os.path.isdir(dirname) == False:os.mkdir(dirname)
-        os.system('mv '+self.folder+'/*.png '+self.folder+'/multi_layer')
-        print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'    ] '+element+'_3D.png > multi_layer')
-        plt.close()
+        with np.errstate(invalid='ignore'):
+            outname = self.folder+'/'+element+'_3D.png'
+            print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'    ] '+outname)
+            datalist = sorted(glob.glob(self.folder+'/result/*'+element+'.xlsx'))
+            input_book = pd.read_excel(datalist[0], index_col=0)
+            vmin = input_book.values.min()
+            vmax = input_book.values.max()
+            plt.figure(figsize=(6*len(datalist),6))
+            for i in range(len(datalist)):
+                plt.subplot(1,len(datalist),i+1)
+                input_book = pd.read_excel(datalist[i], index_col=0)
+                sns.set()
+                plt.style.use('dark_background')
+                input_book = input_book + 1E4
+                sns.heatmap(input_book,cmap='jet',xticklabels=False,yticklabels=False,norm=LogNorm(vmin=vmin, vmax=vmax),cbar=False)
+                print('[ '+pycolor.GREEN+'Sectioning'+pycolor.END+'  ] '+datalist[i])
+                plt.title(element+' (Layer='+datalist[i].split('/')[-1].split('_')[0]+')',color='white',fontsize=18, fontweight="bold")
+            plt.tight_layout()
+            plt.savefig(outname)
+            print('[ '+pycolor.BLUE+'Success'+pycolor.END+'     ] '+outname)
+            dirname = self.folder+'/multi_layer'
+            if os.path.isdir(dirname) == False:os.mkdir(dirname)
+            os.system('mv '+self.folder+'/*.png '+self.folder+'/multi_layer')
+            print('[ '+pycolor.YELLOW+'Moving '+pycolor.END+'     ] '+element+'_3D.png > multi_layer')
+            plt.close('all')
+
+    def normalize(self,element):
+        datalist = glob.glob(self.folder+'/*.csv')
+        [self.get_element_list(filepath) for filepath in datalist]
+        for target in self.elements:
+            outname = self.folder+'/mapping/'+target+'_per13C.png'
+            #print('[ '+pycolor.GREEN+'Generate'+pycolor.END+'   ] '+outname)
+            print('[ '+pycolor.GREEN+'Normalizing'+pycolor.END+' ] '+self.folder+'/mapping/*'+target+'_mapping.png')
+            datalist_c = sorted(glob.glob(self.folder+'/result/*'+element+'.xlsx'))
+            datalist_e = sorted(glob.glob(self.folder+'/result/*'+target+'.xlsx'))
+            input_book_c = pd.read_excel(datalist_c[0], index_col=0)
+            input_book_e = pd.read_excel(datalist_e[0], index_col=0)
+            nimage = input_book_e/input_book_c
+            vmin = nimage.values.min()
+            vmax = nimage.values.max()
+            #print(nimage)
+            sns.heatmap(nimage,cmap='jet',xticklabels=False,yticklabels=False,cbar=True)
+            plt.tight_layout()
+            plt.savefig(outname)
+            plt.close()
+            print('[ '+pycolor.BLUE+'Success'+pycolor.END+'     ] '+outname)
+            #plt.show()
 
     def finish_code(self):
-        print('[ '+pycolor.YELLOW+'Shutdown'+pycolor.END+'   ] Thank you for always using iQuant3D-terminal.')
+        print('[ '+pycolor.YELLOW+'Shutdown'+pycolor.END+'    ] Thank you for always using iQuant3D-terminal (ZEBRA).')
 
-    def run(self):
-        datalist = glob.glob(self.folder+'/*.csv')
-        ts = self.time_stamp(datalist[0],self.standard_element)
-        [[self.iq3_imaging(filepath,self.standard_element, ie, ts) for ie in self.get_element_list(filepath)] for filepath in datalist]
-        self.finishing()
+    def run(self,norm='13C'):
+        with np.errstate(invalid='ignore'):
+            datalist = glob.glob(self.folder+'/*.csv')
+            #ts = self.time_stamp(datalist[0],self.standard_element)
+            ts = self.time_stamp_zebra(datalist[0],self.standard_element)
+            [[self.iq3_imaging(filepath,self.standard_element, ie, ts) for ie in self.get_element_list(filepath)] for filepath in datalist]
+            self.finishing()
+            self.normalize(norm)
 
     def run_rapid(self):
         datalist = glob.glob(self.folder+'/*.csv')
-        ts = self.time_stamp(datalist[0],self.standard_element)
+        #ts = self.time_stamp(datalist[0],self.standard_element)
+        ts = self.time_stamp_zebra(datalist[0],self.standard_element)
         [[self.iq3_imaging_rapid(filepath,self.standard_element, ie, ts) for ie in self.get_element_list(filepath)] for filepath in datalist]
         self.finishing()
 
     def run_test(self):
         datalist = glob.glob(self.folder+'/*.csv')
-        ts = self.time_stamp(datalist[0],self.standard_element)
+        #ts = self.time_stamp(datalist[0],self.standard_element)
+        ts = self.time_stamp_zebra(datalist[0],self.standard_element)
+        #print(ts)
         self.iq3_imaging(datalist[0],self.standard_element, self.standard_element, ts)
         dirname = self.folder+'/test_scan'
         if os.path.isdir(dirname) == False:os.mkdir(dirname)
         os.system('mv '+self.folder+'/*.xlsx '+self.folder+'/test_scan')
         os.system('mv '+self.folder+'/*signal.pdf '+self.folder+'/test_scan')
         os.system('mv '+self.folder+'/*mapping.png '+self.folder+'/test_scan')
-        print('[ '+pycolor.YELLOW+'Checking'+pycolor.END+'   ] Please check /data/test_scan folder.')
+        print('[ '+pycolor.YELLOW+'Checking'+pycolor.END+'    ] Please check /data/test_scan folder.')
